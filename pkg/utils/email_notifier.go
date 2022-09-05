@@ -10,8 +10,12 @@ import (
 type EmailNotifier interface {
 	SendEmails(emails []string)
 }
+type Dialer interface {
+	DialAndSend(m ...*gomail.Message) error
+}
 
 type EmailBTCtoUAHNotifier struct {
+	Dialer   Dialer
 	Host     string
 	Port     int
 	From     string
@@ -26,7 +30,7 @@ func (notifier *EmailBTCtoUAHNotifier) SendEmails(emails []string) {
 	c := make(chan string)
 	for _, email := range emails {
 		msg := notifier.formMessage(email, subject, body)
-		go notifier.sendEmail(c, msg, email)
+		go notifier.sendEmail(c, msg)
 	}
 	for i := 0; i < len(emails); i++ {
 		log.Println(<-c)
@@ -34,12 +38,11 @@ func (notifier *EmailBTCtoUAHNotifier) SendEmails(emails []string) {
 	log.Println("Emails Sent!")
 }
 
-func (notifier *EmailBTCtoUAHNotifier) sendEmail(c chan string, msg *gomail.Message, email string) {
-	dialer := gomail.NewDialer(notifier.Host, notifier.Port, notifier.From, notifier.Password)
-	if err := dialer.DialAndSend(msg); err != nil {
-		c <- "Error for email " + email + ":\n" + err.Error()
+func (notifier *EmailBTCtoUAHNotifier) sendEmail(c chan string, msg *gomail.Message) {
+	if err := notifier.Dialer.DialAndSend(msg); err != nil {
+		c <- "Error for email " + msg.GetHeader("To")[0] + ":\n" + err.Error()
 	} else {
-		c <- "Successed for email " + email
+		c <- "Successed for email " + msg.GetHeader("To")[0]
 	}
 }
 

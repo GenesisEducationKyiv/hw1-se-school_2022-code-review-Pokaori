@@ -29,10 +29,13 @@ func (storage *EmailJsonStorage) GetAllEmails() ([]string, error) {
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var result []string
-	err = json.Unmarshal([]byte(byteValue), &result)
-	if err != nil {
-		return nil, err
+	if len(byteValue) != 0 {
+		err = json.Unmarshal([]byte(byteValue), &result)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	return result, nil
 }
 

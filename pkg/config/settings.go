@@ -18,9 +18,8 @@ type settings struct {
 
 var Settings settings
 
-func LoadEnv() {
-
-	err := godotenv.Load(".env")
+func LoadEnv(path string) {
+	err := godotenv.Load(path)
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -29,7 +28,7 @@ func LoadEnv() {
 	Settings.EmailHost = os.Getenv("EMAIL_HOST")
 	Settings.EmailPort, err = strconv.Atoi(os.Getenv("EMAIL_PORT"))
 	if err != nil {
-		log.Fatal("Incoorect value for EmailPort. Should be int.")
+		log.Fatal("Incorrect value for EmailPort. Should be int.")
 	}
 	Settings.EmailsStoragePath = os.Getenv("EMAIL_STORAGE_PATH")
 }
