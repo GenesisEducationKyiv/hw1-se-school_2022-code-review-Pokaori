@@ -11,8 +11,27 @@ import (
 	"net/mail"
 )
 
-var Storage models.EmailHandler
-var Converter utils.BitcoinReader
+type EmailNotifier interface {
+	SendEmails(emails []string)
+}
+
+type EmailHandler interface {
+	AddEmail(email string) (string, error)
+	GetAllEmails() ([]string, error)
+}
+
+type BitcoinReader interface {
+	ExchangeRate(currency string) (float64, error)
+}
+
+type BitcoinController struct {
+	storage   EmailHandler
+	converter BitcoinReader
+}
+
+func NewBitcoinController(storage EmailHandler, converter BitcoinReader) *BitcoinController {
+	return &BitcoinController{storage: storage, converter: converter}
+}
 
 type Response struct {
 	status int
@@ -27,19 +46,19 @@ func NewResponseWithBody(status int, body []byte) *Response {
 	return &Response{status: status, body: body}
 }
 
-func Subscribe(w http.ResponseWriter, r *http.Request) {
+func (controller *BitcoinController) Subscribe(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		writeIncorrectEmailResponse(&w)
+		controller.writeIncorrectEmailResponse(&w)
 		return
 	}
 	addr, err := mail.ParseAddress(r.Form.Get("email"))
 	if err != nil {
-		writeIncorrectEmailResponse(&w)
+		controller.writeIncorrectEmailResponse(&w)
 		return
 	}
 
-	res, err := Storage.AddEmail(addr.Address)
+	res, err := controller.storage.AddEmail(addr.Address)
 
 	var response Response
 	if errors.Is(err, models.ErrDuplicateEmail) {
@@ -50,11 +69,11 @@ func Subscribe(w http.ResponseWriter, r *http.Request) {
 	} else {
 		response = *NewResponseWithBody(http.StatusOK, []byte(res))
 	}
-	writeResponse(&w, response)
+	controller.writeResponse(&w, response)
 }
 
-func GetRate(w http.ResponseWriter, r *http.Request) {
-	rate, err := Converter.ExchangeRate(config.ExchangeRateUAH)
+func (controller *BitcoinController) GetRate(w http.ResponseWriter, r *http.Request) {
+	rate, err := controller.converter.ExchangeRate(config.ExchangeRateUAH)
 	var response Response
 	if err != nil {
 		response = *NewResponse(http.StatusInternalServerError)
@@ -62,26 +81,26 @@ func GetRate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		response = *NewResponseWithBody(http.StatusOK, []byte(fmt.Sprint(rate)))
 	}
-	writeResponse(&w, response)
+	controller.writeResponse(&w, response)
 }
 
-func SendEmails(w http.ResponseWriter, r *http.Request) {
-	rate, err := Converter.ExchangeRate(config.ExchangeRateUAH)
+func (controller *BitcoinController) SendEmails(w http.ResponseWriter, r *http.Request) {
+	rate, err := controller.converter.ExchangeRate(config.ExchangeRateUAH)
 	if err != nil {
 		log.Println(err)
 		response := *NewResponse(http.StatusBadRequest)
-		writeResponse(&w, response)
+		controller.writeResponse(&w, response)
 		return
 	}
 
-	var notifier utils.EmailNotifier = &utils.EmailBTCtoUAHNotifier{
+	var notifier EmailNotifier = &utils.EmailBTCtoUAHNotifier{
 		Host:     config.Settings.EmailHost,
 		Port:     config.Settings.EmailPort,
 		From:     config.Settings.EmailName,
 		Password: config.Settings.EmailPass,
 		Rate:     rate,
 	}
-	emails, err := Storage.GetAllEmails()
+	emails, err := controller.storage.GetAllEmails()
 
 	var response Response
 	if err != nil {
@@ -92,15 +111,15 @@ func SendEmails(w http.ResponseWriter, r *http.Request) {
 		go notifier.SendEmails(emails)
 		response = *NewResponse(http.StatusOK)
 	}
-	writeResponse(&w, response)
+	controller.writeResponse(&w, response)
 }
 
-func writeIncorrectEmailResponse(w *http.ResponseWriter) {
+func (controller *BitcoinController) writeIncorrectEmailResponse(w *http.ResponseWriter) {
 	response := *NewResponseWithBody(http.StatusBadRequest, []byte("Incorrect email"))
-	writeResponse(w, response)
+	controller.writeResponse(w, response)
 }
 
-func writeResponse(w *http.ResponseWriter, res Response) {
+func (controller *BitcoinController) writeResponse(w *http.ResponseWriter, res Response) {
 	(*w).WriteHeader(res.status)
 	if len(res.body) > 0 {
 		_, err := (*w).Write(res.body)

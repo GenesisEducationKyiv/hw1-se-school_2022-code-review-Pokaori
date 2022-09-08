@@ -7,9 +7,7 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-type EmailNotifier interface {
-	SendEmails(emails []string)
-}
+
 type Dialer interface {
 	DialAndSend(m ...*gomail.Message) error
 }

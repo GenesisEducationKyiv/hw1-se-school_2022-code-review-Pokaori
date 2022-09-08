@@ -26,7 +26,7 @@ func (dialer *DialerMock) AssertCalledEmails(emails []string) bool {
 		diff[email]++
 	}
 	for _, email := range dialer.emails {
-		// If the string _y is not in diff bail out early
+		// If the string  is not in diff bail out early
 		if _, ok := diff[email]; !ok {
 			return false
 		}
@@ -43,7 +43,7 @@ func TestNotifierSendToCorrectEmails(t *testing.T) {
 
 	var emails = []string{"ex1@example.com", "ex2@example.com", "ex3@example.com"}
 	dialer := &DialerMock{}
-	var notifier EmailNotifier = &EmailBTCtoUAHNotifier{
+	notifier := &EmailBTCtoUAHNotifier{
 		Dialer:   dialer,
 		Host:     config.Settings.EmailHost,
 		Port:     config.Settings.EmailPort,

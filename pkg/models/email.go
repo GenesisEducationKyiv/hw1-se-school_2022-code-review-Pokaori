@@ -11,11 +11,6 @@ import (
 
 var ErrDuplicateEmail = errors.New("this email already exist")
 
-type EmailHandler interface {
-	AddEmail(email string) (string, error)
-	GetAllEmails() ([]string, error)
-}
-
 type EmailJsonStorage struct {
 	PathFile string
 }

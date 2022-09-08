@@ -6,10 +6,6 @@ import (
 	"strconv"
 )
 
-type BitcoinReader interface {
-	ExchangeRate(currency string) (float64, error)
-}
-
 type BitcoinConverterCoingate struct {
 	Domain string
 }
