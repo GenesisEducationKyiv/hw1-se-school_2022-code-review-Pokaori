@@ -4,13 +4,15 @@ import (
 	"bitcoin-service/pkg/config"
 	"bitcoin-service/pkg/models"
 	"bitcoin-service/pkg/utils"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/mail"
 )
+
+var Storage models.EmailHandler
+var Converter utils.BitcoinReader
 
 type Response struct {
 	status int
@@ -37,8 +39,7 @@ func Subscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var storage models.EmailHandler = &models.EmailJsonStorage{PathFile: config.Settings.EmailsStoragePath}
-	res, err := storage.AddEmail(addr.Address)
+	res, err := Storage.AddEmail(addr.Address)
 
 	var response Response
 	if errors.Is(err, models.ErrDuplicateEmail) {
@@ -47,14 +48,13 @@ func Subscribe(w http.ResponseWriter, r *http.Request) {
 		response = *NewResponse(http.StatusInternalServerError)
 		log.Println(err)
 	} else {
-		response = formJsonResponsewithStatus(res, http.StatusOK)
+		response = *NewResponseWithBody(http.StatusOK, []byte(res))
 	}
 	writeResponse(&w, response)
 }
 
 func GetRate(w http.ResponseWriter, r *http.Request) {
-	var converter utils.BitcoinReader = &utils.BitcoinConverterCoingate{Domain: config.BitcoinCoingateDomain}
-	rate, err := converter.ExchangeRate(config.ExchangeRateUAH)
+	rate, err := Converter.ExchangeRate(config.ExchangeRateUAH)
 	var response Response
 	if err != nil {
 		response = *NewResponse(http.StatusInternalServerError)
@@ -66,8 +66,7 @@ func GetRate(w http.ResponseWriter, r *http.Request) {
 }
 
 func SendEmails(w http.ResponseWriter, r *http.Request) {
-	var converter utils.BitcoinReader = &utils.BitcoinConverterCoingate{Domain: config.BitcoinCoingateDomain}
-	rate, err := converter.ExchangeRate(config.ExchangeRateUAH)
+	rate, err := Converter.ExchangeRate(config.ExchangeRateUAH)
 	if err != nil {
 		log.Println(err)
 		response := *NewResponse(http.StatusBadRequest)
@@ -82,8 +81,8 @@ func SendEmails(w http.ResponseWriter, r *http.Request) {
 		Password: config.Settings.EmailPass,
 		Rate:     rate,
 	}
-	var storage models.EmailHandler = &models.EmailJsonStorage{PathFile: config.Settings.EmailsStoragePath}
-	emails, err := storage.GetAllEmails()
+	emails, err := Storage.GetAllEmails()
+
 	var response Response
 	if err != nil {
 		log.Println(err)
@@ -101,16 +100,8 @@ func writeIncorrectEmailResponse(w *http.ResponseWriter) {
 	writeResponse(w, response)
 }
 
-func formJsonResponsewithStatus(data string, status int) Response {
-	jsonBody, err := json.Marshal(data)
-	if err != nil {
-		log.Println(err)
-		return *NewResponse(http.StatusInternalServerError)
-	}
-	return *NewResponseWithBody(http.StatusOK, jsonBody)
-}
-
 func writeResponse(w *http.ResponseWriter, res Response) {
+	(*w).WriteHeader(res.status)
 	if len(res.body) > 0 {
 		_, err := (*w).Write(res.body)
 		if err != nil {
@@ -119,5 +110,4 @@ func writeResponse(w *http.ResponseWriter, res Response) {
 			return
 		}
 	}
-	(*w).WriteHeader(res.status)
 }
