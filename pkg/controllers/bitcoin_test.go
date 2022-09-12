@@ -12,12 +12,12 @@ import (
 )
 
 func TestControllerSubscribeIncorrectEmail(t *testing.T) {
-	dir := setupStorage(t)
+	controller, dir := setupController(t)
 	defer os.RemoveAll(dir)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/Subscribe", nil)
 
-	Subscribe(rr, req)
+	controller.Subscribe(rr, req)
 
 	if rr.Result().StatusCode != http.StatusBadRequest {
 		t.Errorf("Status code returned, %d, did not match expected code %d", rr.Result().StatusCode, http.StatusBadRequest)
@@ -25,14 +25,14 @@ func TestControllerSubscribeIncorrectEmail(t *testing.T) {
 }
 
 func TestControllerSubscribeSuccessful(t *testing.T) {
-	dir := setupStorage(t)
+	controller, dir := setupController(t)
 	defer os.RemoveAll(dir)
 	email := "example@example.com"
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/Subscribe", nil)
 	req.Form = url.Values{"email": []string{email}}
 
-	Subscribe(rr, req)
+	controller.Subscribe(rr, req)
 
 	if rr.Result().StatusCode != http.StatusOK {
 		t.Errorf("Status code returned, %d, did not match expected code %d", rr.Result().StatusCode, http.StatusOK)
@@ -43,16 +43,16 @@ func TestControllerSubscribeSuccessful(t *testing.T) {
 }
 
 func TestControllerSubscribeDuplicate(t *testing.T) {
-	dir := setupStorage(t)
+	controller, dir := setupController(t)
 	defer os.RemoveAll(dir)
 	email := "example@example.com"
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/subscribe/", nil)
 	req.Form = url.Values{"email": []string{email}}
 
-	Subscribe(rr, req)
+	controller.Subscribe(rr, req)
 	rr = httptest.NewRecorder()
-	Subscribe(rr, req)
+	controller.Subscribe(rr, req)
 
 	if rr.Result().StatusCode != http.StatusConflict {
 		t.Errorf("Status code returned, %d, did not match expected code %d", rr.Result().StatusCode, http.StatusOK)
@@ -60,16 +60,17 @@ func TestControllerSubscribeDuplicate(t *testing.T) {
 }
 
 func TestControllerGetRateSuccessful(t *testing.T) {
+	controller, dir := setupController(t)
+	defer os.RemoveAll(dir)
 	test_rate := "0.4"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(test_rate))
 	}))
 	defer server.Close()
-	Converter = &utils.BitcoinConverterCoingate{Domain: server.URL}
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/rate/", nil)
 
-	GetRate(rr, req)
+	controller.GetRate(rr, req)
 
 	if rr.Result().StatusCode != http.StatusOK {
 		t.Errorf("Status code returned, %d, did not match expected code %d", rr.Result().StatusCode, http.StatusOK)
@@ -80,24 +81,24 @@ func TestControllerGetRateSuccessful(t *testing.T) {
 }
 
 func TestControllerSendEmailsSuccessful(t *testing.T) {
-	Converter = &utils.BitcoinConverterCoingate{Domain: config.BitcoinCoingateDomain}
-	dir := setupStorage(t)
+	controller, dir := setupController(t)
 	defer os.RemoveAll(dir)
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/Subscribe", nil)
-	Subscribe(rr, req)
+	controller.Subscribe(rr, req)
 	rr = httptest.NewRecorder()
 	req = httptest.NewRequest("GET", "/sendEmails/", nil)
 
-	SendEmails(rr, req)
+	controller.SendEmails(rr, req)
 
 	if rr.Result().StatusCode != http.StatusOK {
 		t.Errorf("Status code returned, %d, did not match expected code %d", rr.Result().StatusCode, http.StatusOK)
 	}
 }
 
-func setupStorage(t *testing.T) string {
+func setupController(t *testing.T) (*BitcoinController, string) {
 	dir := config.SetupTempDir(t)
-	Storage = &models.EmailJsonStorage{PathFile: dir + "/data.json"}
-	return dir
+	storage := &models.EmailJsonStorage{PathFile: dir + "/data.json"}
+	converter := &utils.BitcoinConverterCoingate{Domain: config.BitcoinCoingateDomain}
+	return NewBitcoinController(storage, converter), dir
 }

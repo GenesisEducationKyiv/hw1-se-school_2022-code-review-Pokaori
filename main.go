@@ -14,10 +14,15 @@ import (
 
 func main() {
 	config.LoadEnv(".env")
-	controllers.Storage = &models.EmailJsonStorage{PathFile: config.Settings.EmailsStoragePath}
-	controllers.Converter = &utils.BitcoinConverterCoingate{Domain: config.BitcoinCoingateDomain}
+	controller := initController()
 	r := mux.NewRouter()
-	routes.RegisterBitcoinRoutes(r)
+	routes.RegisterBitcoinRoutes(r, controller)
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe("0.0.0.0:8000", r))
+}
+
+func initController() *controllers.BitcoinController {
+	storage := &models.EmailJsonStorage{PathFile: config.Settings.EmailsStoragePath}
+	converter := &utils.BitcoinConverterCoingate{Domain: config.BitcoinCoingateDomain}
+	return controllers.NewBitcoinController(storage, converter)
 }

@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var RegisterBitcoinRoutes = func(router *mux.Router) {
-	router.HandleFunc("/rate/", controllers.GetRate).Methods("GET")
-	router.HandleFunc("/subscribe/", controllers.Subscribe).Methods("POST")
-	router.HandleFunc("/sendEmails/", controllers.SendEmails).Methods("POST")
+var RegisterBitcoinRoutes = func(router *mux.Router, controller *controllers.BitcoinController) {
+	router.HandleFunc("/rate/", controller.GetRate).Methods("GET")
+	router.HandleFunc("/subscribe/", controller.Subscribe).Methods("POST")
+	router.HandleFunc("/sendEmails/", controller.SendEmails).Methods("POST")
 }
