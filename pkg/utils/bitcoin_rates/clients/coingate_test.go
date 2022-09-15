@@ -1,4 +1,4 @@
-package utils
+package clients
 
 import (
 	"fmt"
@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-func TestBitcoinCoverterReturnCorrectExchangeRate(t *testing.T) {
+func TestBitcoinConverterReturnCorrectExchangeRate(t *testing.T) {
 	var test_rate float64 = 1.4
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("%v", test_rate)))
 	}))
 	defer server.Close()
-	converter := BitcoinConverterCoingate{Domain: server.URL}
+	converter := &CoingateBitcoinRateClient{Domain: server.URL}
 
 	resp, err := converter.ExchangeRate("UAH")
 
@@ -25,7 +25,7 @@ func TestBitcoinCoverterReturnCorrectExchangeRate(t *testing.T) {
 
 }
 
-func TestBitcoinCoverterExchangeRateUseCorrectCurrency(t *testing.T) {
+func TestBitcoinConverterExchangeRateUseCorrectCurrency(t *testing.T) {
 	var test_rate float64 = 1.4
 	currency := "UAH"
 	path := "/v2/rates/merchant/BTC/" + currency
@@ -36,7 +36,7 @@ func TestBitcoinCoverterExchangeRateUseCorrectCurrency(t *testing.T) {
 		w.Write([]byte(fmt.Sprintf("%v", test_rate)))
 	}))
 	defer server.Close()
-	converter := BitcoinConverterCoingate{Domain: server.URL}
+	converter := &CoingateBitcoinRateClient{Domain: server.URL}
 
 	_, err := converter.ExchangeRate(currency)
 

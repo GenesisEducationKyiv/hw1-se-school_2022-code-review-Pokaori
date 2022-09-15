@@ -4,7 +4,7 @@ import (
 	"bitcoin-service/pkg/config"
 	"bitcoin-service/pkg/models"
 	"bitcoin-service/pkg/utils"
-	"errors"
+	"bitcoin-service/pkg/utils/bitcoin_rates/clients"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,21 +15,18 @@ type EmailNotifier interface {
 	SendEmails(emails []string)
 }
 
-type EmailHandler interface {
-	AddEmail(email string) (string, error)
-	GetAllEmails() ([]string, error)
-}
-
-type BitcoinReader interface {
-	ExchangeRate(currency string) (float64, error)
+type UsersStorageInterface interface {
+	IsExist(user *models.User) (bool, error)
+	Save(user *models.User) error
+	GetAllUsers() ([]models.User, error)
 }
 
 type BitcoinController struct {
-	storage   EmailHandler
-	converter BitcoinReader
+	storage   UsersStorageInterface
+	converter clients.BitcoinRateClientInterface
 }
 
-func NewBitcoinController(storage EmailHandler, converter BitcoinReader) *BitcoinController {
+func NewBitcoinController(storage UsersStorageInterface, converter clients.BitcoinRateClientInterface) *BitcoinController {
 	return &BitcoinController{storage: storage, converter: converter}
 }
 
@@ -58,16 +55,25 @@ func (controller *BitcoinController) Subscribe(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	res, err := controller.storage.AddEmail(addr.Address)
+	res, err := controller.storage.IsExist(models.NewUser(addr.Address))
+	if err != nil {
+		controller.writeResponse(&w, *NewResponse(http.StatusInternalServerError))
+		log.Println(err)
+		return
+	}
+	if res {
+		controller.writeResponse(&w, *NewResponseWithBody(http.StatusConflict, []byte("this email already exists")))
+		return
+	}
+
+	err = controller.storage.Save(models.NewUser(addr.Address))
 
 	var response Response
-	if errors.Is(err, models.ErrDuplicateEmail) {
-		response = *NewResponseWithBody(http.StatusConflict, []byte(err.Error()))
-	} else if err != nil {
+	if err != nil {
 		response = *NewResponse(http.StatusInternalServerError)
 		log.Println(err)
 	} else {
-		response = *NewResponseWithBody(http.StatusOK, []byte(res))
+		response = *NewResponseWithBody(http.StatusOK, []byte(addr.Address))
 	}
 	controller.writeResponse(&w, response)
 }
@@ -100,7 +106,8 @@ func (controller *BitcoinController) SendEmails(w http.ResponseWriter, r *http.R
 		Password: config.Settings.EmailPass,
 		Rate:     rate,
 	}
-	emails, err := controller.storage.GetAllEmails()
+	users, err := controller.storage.GetAllUsers()
+	emails := controller.getEmailListFromUsers(users)
 
 	var response Response
 	if err != nil {
@@ -129,4 +136,12 @@ func (controller *BitcoinController) writeResponse(w *http.ResponseWriter, res R
 			return
 		}
 	}
+}
+
+func (controller *BitcoinController) getEmailListFromUsers(users []models.User) []string {
+	var emails []string
+	for _, user := range users {
+		emails = append(emails, user.Email)
+	}
+	return emails
 }

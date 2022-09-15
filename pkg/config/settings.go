@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bitcoin-service/pkg/utils/bitcoin_rates/clients"
+	"bitcoin-service/pkg/utils/bitcoin_rates/creators"
 	"log"
 	"os"
 	"strconv"
@@ -8,12 +10,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type BitcoinRateCreatorInterface interface {
+	CreateClient() clients.BitcoinRateClientInterface
+}
 type settings struct {
-	EmailName         string
-	EmailPass         string
-	EmailHost         string
-	EmailPort         int
-	EmailsStoragePath string
+	EmailName              string
+	EmailPass              string
+	EmailHost              string
+	EmailPort              int
+	EmailsStoragePath      string
+	CryptoCurrencyProvider string
+	BitcoinRateCreators    map[string]BitcoinRateCreatorInterface
 }
 
 var Settings settings
@@ -31,4 +38,11 @@ func LoadEnv(path string) {
 		log.Fatal("Incorrect value for EmailPort. Should be int.")
 	}
 	Settings.EmailsStoragePath = os.Getenv("EMAIL_STORAGE_PATH")
+	Settings.CryptoCurrencyProvider = os.Getenv("CRYPTO_CURRENCY_PROVIDER")
+	Settings.BitcoinRateCreators = map[string]BitcoinRateCreatorInterface{
+		"coingate": &creators.CoingateBitcoinRateCreator{Domain: CoingateDomain},
+		"coinbase": &creators.CoinbaseBitcoinRateCreator{Domain: CoinbaseDomain},
+		"binance":  &creators.BinanceBitcoinRateCreator{Domain: BinanceDomain},
+	}
+
 }
