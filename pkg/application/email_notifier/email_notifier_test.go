@@ -1,4 +1,4 @@
-package utils
+package email_notifier
 
 import (
 	"bitcoin-service/mocks"
@@ -16,10 +16,9 @@ func TestNotifierSendToCorrectEmails(t *testing.T) {
 		Port:     config.Settings.EmailPort,
 		From:     config.Settings.EmailName,
 		Password: config.Settings.EmailPass,
-		Rate:     0.1,
 	}
 
-	notifier.SendEmails(emails)
+	notifier.SendEmails(emails, 0.1)
 
 	if !dialer.AssertCalledEmails(emails) {
 		t.Fatalf("Messages are sent to wrong emails. Should be %v, instead got %v", emails, dialer.GetEmails())

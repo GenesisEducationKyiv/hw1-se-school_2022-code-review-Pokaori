@@ -1,12 +1,12 @@
 package mocks
 
-import "bitcoin-service/pkg/utils/bitcoin_rates/clients"
+import "bitcoin-service/interfaces"
 
 type BitcoinRateClientMock struct {
 	Rate float64
 }
 
-func (converter *BitcoinRateClientMock) SetNext(next *clients.BitcoinRateClientInterface) {
+func (converter *BitcoinRateClientMock) SetNext(next *interfaces.BitcoinRateClientInterface) {
 }
 
 func (converter *BitcoinRateClientMock) ExchangeRate(currency string) (float64, error) {

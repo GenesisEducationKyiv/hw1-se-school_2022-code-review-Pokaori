@@ -1,4 +1,4 @@
-package utils
+package email_notifier
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	"gopkg.in/gomail.v2"
 )
-
 
 type Dialer interface {
 	DialAndSend(m ...*gomail.Message) error
@@ -18,12 +17,11 @@ type EmailBTCtoUAHNotifier struct {
 	Port     int
 	From     string
 	Password string
-	Rate     float64
 }
 
-func (notifier *EmailBTCtoUAHNotifier) SendEmails(emails []string) {
+func (notifier *EmailBTCtoUAHNotifier) SendEmails(emails []string, rate float64) {
 	subject := "Changes in BTC to UAH currency rate"
-	body := "The rate is " + fmt.Sprint(notifier.Rate)
+	body := "The rate is " + fmt.Sprint(rate)
 
 	c := make(chan string)
 	for _, email := range emails {

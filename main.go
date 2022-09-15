@@ -1,12 +1,13 @@
 package main
 
 import (
+	"bitcoin-service/interfaces"
+	"bitcoin-service/pkg/application/email_notifier"
 	"bitcoin-service/pkg/config"
 	"bitcoin-service/pkg/controllers"
-	"bitcoin-service/pkg/repositories"
+	ratedecorators "bitcoin-service/pkg/domain/bit_rates_clients/clients/decorators"
+	"bitcoin-service/pkg/domain/repositories"
 	"bitcoin-service/pkg/routes"
-	"bitcoin-service/pkg/utils/bitcoin_rates/clients"
-	ratedecorators "bitcoin-service/pkg/utils/bitcoin_rates/clients/decorators"
 	"log"
 	"net/http"
 	"time"
@@ -27,11 +28,12 @@ func main() {
 func initController() *controllers.BitcoinController {
 	storage := &repositories.UserJsonStorage{PathFile: config.Settings.EmailsStoragePath}
 	converter := initConverter()
-	return controllers.NewBitcoinController(storage, *converter)
+	notifier := initEmailNotifier()
+	return controllers.NewBitcoinController(storage, *converter, *notifier)
 }
 
-func initConverter() *clients.BitcoinRateClientInterface {
-	var converter clients.BitcoinRateClientInterface = config.Settings.BitcoinRateCreators[config.Settings.CryptoCurrencyProvider].CreateClient()
+func initConverter() *interfaces.BitcoinRateClientInterface {
+	var converter interfaces.BitcoinRateClientInterface = config.Settings.BitcoinRateCreators[config.Settings.CryptoCurrencyProvider].CreateClient()
 	mainConverter := &converter
 
 	prevConv := mainConverter
@@ -43,8 +45,18 @@ func initConverter() *clients.BitcoinRateClientInterface {
 		}
 	}
 
-	var decorator clients.BitcoinRateClientInterface = &ratedecorators.DecoratornRateClient{
+	var decorator interfaces.BitcoinRateClientInterface = &ratedecorators.CachingRateClient{
 		Wrapee:      mainConverter,
 		SystemCache: *cache.New(5*time.Minute, 5*time.Minute)}
 	return &decorator
+}
+
+func initEmailNotifier() *interfaces.EmailNotifier {
+	var notifier interfaces.EmailNotifier = &email_notifier.EmailBTCtoUAHNotifier{
+		Host:     config.Settings.EmailHost,
+		Port:     config.Settings.EmailPort,
+		From:     config.Settings.EmailName,
+		Password: config.Settings.EmailPass,
+	}
+	return &notifier
 }

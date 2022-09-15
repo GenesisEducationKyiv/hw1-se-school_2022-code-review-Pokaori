@@ -1,33 +1,23 @@
 package controllers
 
 import (
+	"bitcoin-service/interfaces"
 	"bitcoin-service/pkg/config"
 	"bitcoin-service/pkg/models"
-	"bitcoin-service/pkg/utils"
-	"bitcoin-service/pkg/utils/bitcoin_rates/clients"
 	"fmt"
 	"log"
 	"net/http"
 	"net/mail"
 )
 
-type EmailNotifier interface {
-	SendEmails(emails []string)
-}
-
-type UsersStorageInterface interface {
-	IsExist(user *models.User) (bool, error)
-	Save(user *models.User) error
-	GetAllUsers() ([]models.User, error)
-}
-
 type BitcoinController struct {
-	storage   UsersStorageInterface
-	converter clients.BitcoinRateClientInterface
+	storage   interfaces.UsersStorageInterface
+	converter interfaces.BitcoinRateClientInterface
+	notifier  interfaces.EmailNotifier
 }
 
-func NewBitcoinController(storage UsersStorageInterface, converter clients.BitcoinRateClientInterface) *BitcoinController {
-	return &BitcoinController{storage: storage, converter: converter}
+func NewBitcoinController(storage interfaces.UsersStorageInterface, converter interfaces.BitcoinRateClientInterface, notifier interfaces.EmailNotifier) *BitcoinController {
+	return &BitcoinController{storage: storage, converter: converter, notifier: notifier}
 }
 
 type Response struct {
@@ -99,13 +89,6 @@ func (controller *BitcoinController) SendEmails(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var notifier EmailNotifier = &utils.EmailBTCtoUAHNotifier{
-		Host:     config.Settings.EmailHost,
-		Port:     config.Settings.EmailPort,
-		From:     config.Settings.EmailName,
-		Password: config.Settings.EmailPass,
-		Rate:     rate,
-	}
 	users, err := controller.storage.GetAllUsers()
 	emails := controller.getEmailListFromUsers(users)
 
@@ -115,7 +98,7 @@ func (controller *BitcoinController) SendEmails(w http.ResponseWriter, r *http.R
 		response = *NewResponse(http.StatusBadRequest)
 
 	} else {
-		go notifier.SendEmails(emails)
+		go controller.notifier.SendEmails(emails, rate)
 		response = *NewResponse(http.StatusOK)
 	}
 	controller.writeResponse(&w, response)
