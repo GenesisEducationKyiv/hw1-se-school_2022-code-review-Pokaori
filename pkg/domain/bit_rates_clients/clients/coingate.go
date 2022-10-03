@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bitcoin-service/interfaces"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -8,10 +9,10 @@ import (
 
 type CoingateBitcoinRateClient struct {
 	Domain string
-	next   *BitcoinRateClientInterface
+	next   *interfaces.BitcoinRateClientInterface
 }
 
-func (converter *CoingateBitcoinRateClient) SetNext(next *BitcoinRateClientInterface) {
+func (converter *CoingateBitcoinRateClient) SetNext(next *interfaces.BitcoinRateClientInterface) {
 	converter.next = next
 }
 

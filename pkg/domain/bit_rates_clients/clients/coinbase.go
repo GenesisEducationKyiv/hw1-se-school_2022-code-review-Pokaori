@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bitcoin-service/interfaces"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,10 +16,10 @@ type decodedCoinbaseResponse struct {
 
 type CoinbaseBitcoinRateClient struct {
 	Domain string
-	next   *BitcoinRateClientInterface
+	next   *interfaces.BitcoinRateClientInterface
 }
 
-func (converter *CoinbaseBitcoinRateClient) SetNext(next *BitcoinRateClientInterface) {
+func (converter *CoinbaseBitcoinRateClient) SetNext(next *interfaces.BitcoinRateClientInterface) {
 	converter.next = next
 }
 

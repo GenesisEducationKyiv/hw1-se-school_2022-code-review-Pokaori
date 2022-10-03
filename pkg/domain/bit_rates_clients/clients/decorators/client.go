@@ -1,23 +1,23 @@
 package decorators
 
 import (
-	"bitcoin-service/pkg/utils/bitcoin_rates/clients"
+	"bitcoin-service/interfaces"
 	"log"
 
 	"github.com/patrickmn/go-cache"
 )
 
-type DecoratornRateClient struct {
-	Wrapee      *clients.BitcoinRateClientInterface
+type CachingRateClient struct {
+	Wrapee      *interfaces.BitcoinRateClientInterface
 	SystemCache cache.Cache
-	next        *clients.BitcoinRateClientInterface
+	next        *interfaces.BitcoinRateClientInterface
 }
 
-func (converter *DecoratornRateClient) SetNext(next *clients.BitcoinRateClientInterface) {
+func (converter *CachingRateClient) SetNext(next *interfaces.BitcoinRateClientInterface) {
 	(*converter.Wrapee).SetNext(next)
 }
 
-func (converter *DecoratornRateClient) ExchangeRate(currency string) (float64, error) {
+func (converter *CachingRateClient) ExchangeRate(currency string) (float64, error) {
 	cahce_title := "bitcoin_rate_res"
 	if rate, found := converter.SystemCache.Get(cahce_title); found {
 		return rate.(float64), nil

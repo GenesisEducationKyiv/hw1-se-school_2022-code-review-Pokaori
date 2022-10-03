@@ -1,8 +1,8 @@
 package config
 
 import (
-	"bitcoin-service/pkg/utils/bitcoin_rates/clients"
-	"bitcoin-service/pkg/utils/bitcoin_rates/creators"
+	"bitcoin-service/interfaces"
+	"bitcoin-service/pkg/domain/bit_rates_clients/creators"
 	"log"
 	"os"
 	"strconv"
@@ -11,7 +11,7 @@ import (
 )
 
 type BitcoinRateCreatorInterface interface {
-	CreateClient() clients.BitcoinRateClientInterface
+	CreateClient() interfaces.BitcoinRateClientInterface
 }
 type settings struct {
 	EmailName              string

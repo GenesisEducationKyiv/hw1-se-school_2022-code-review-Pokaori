@@ -89,7 +89,8 @@ func TestControllerSendEmailsSuccessful(t *testing.T) {
 func setupController(t *testing.T, test_rate float64) *BitcoinController {
 	storage := &mocks.UsersStorageMock{}
 	converter := &mocks.BitcoinRateClientMock{Rate: test_rate}
-	return NewBitcoinController(storage, converter)
+	notifier := &mocks.EmailNotifierMock{}
+	return NewBitcoinController(storage, converter, notifier)
 }
 
 func createTestServer(test_rate string) *httptest.Server {

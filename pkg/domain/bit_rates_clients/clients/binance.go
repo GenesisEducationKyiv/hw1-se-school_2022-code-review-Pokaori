@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bitcoin-service/interfaces"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -12,10 +13,10 @@ type decodedBinanceResponse struct {
 
 type BinanceBitcoinRateClient struct {
 	Domain string
-	next   *BitcoinRateClientInterface
+	next   *interfaces.BitcoinRateClientInterface
 }
 
-func (converter *BinanceBitcoinRateClient) SetNext(next *BitcoinRateClientInterface) {
+func (converter *BinanceBitcoinRateClient) SetNext(next *interfaces.BitcoinRateClientInterface) {
 	converter.next = next
 }
 
